@@ -11,6 +11,7 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Xml.Serialization;
 using Brickficiency.Classes;
+using Brickficiency.Services;
 
 
 namespace Brickficiency {
@@ -80,21 +81,23 @@ namespace Brickficiency {
             ReportStart();
             #endregion
 
-            switch (whichAlgToRun) {
+            var algorithmRunner = new AlgorithmRunner();
+
+            switch (whichAlgToRun)
+            {
                 case RUN_OLD:
-                    runTheAlgorithm(settings.minstores, settings.maxstores, settings.cont, StoreList, WantedItemList, RunOldAlgorithmOn, StandardPreProcess);
+                    algorithmRunner.Run(settings, MatchAlgorithmType.Linear, AlgorithmMode.Complete, this, StoreList, WantedItemList);
                     break;
                 case RUN_NEW:
-                    runTheAlgorithm(settings.minstores, settings.maxstores, settings.cont, StoreList, WantedItemList, KStoreCalc, StandardPreProcess);
-                    break;
-                case RUN_CUSTOM:
-                    runTheAlgorithm(settings.minstores, settings.maxstores, settings.cont, StoreList, WantedItemList, CustomAlgorithm, CustomPreProcess);
+                    algorithmRunner.Run(settings, MatchAlgorithmType.KStoreCalc, AlgorithmMode.Complete, this, StoreList, WantedItemList);
                     break;
                 case RUN_APPROX:
-                    runApproxAlgorithm(settings.minstores, settings.maxstores, settings.approxtime * 1000, StoreList, WantedItemList, KStoreCalc, StandardPreProcess);
-                    break;
-                case RUN_CUSTOM_APPROX:
-                    runApproxAlgorithm(settings.minstores, settings.maxstores, settings.approxtime * 1000, StoreList, WantedItemList, CustomApproximationAlgorithm, CustomApproximationPreProcess);
+                    algorithmRunner.Run(settings, MatchAlgorithmType.KStoreCalc, AlgorithmMode.Approximation, this, StoreList, WantedItemList);
+
+                    if (false)
+                    {
+                        runApproxAlgorithm(settings.minstores, settings.maxstores, settings.approxtime * 1000, StoreList, WantedItemList, KStoreCalc, StandardPreProcess);
+                    }
                     break;
             }
 

@@ -20,10 +20,12 @@ using System.Data.SqlServerCe;
 using Ionic.Zip;
 using Brickficiency.Classes;
 using System.Diagnostics;
+using Brickficiency.App;
+using Brickficiency.Services;
 
 
 namespace Brickficiency {
-    public partial class MainWindow : Form {
+    public partial class MainWindow : Form, IAlgorithmInteraction {
         //todo:
         //editing/creating files
         // -copy/paste
@@ -54,7 +56,7 @@ namespace Brickficiency {
         #region prepare some vars
         //global stuff
         public static string version = "v0.96.0"; // CHANGE APPLICATION PROPERTIES > Assembly Information
-        public static string programname = "Brickficiency";
+        public static string programname = Constants.ApplicationName;
         static string appdata = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         static string programdata = appdata + "\\" + programname + "\\";
         public static string settingsfilename = programdata + programname + "-Settings.xml";
@@ -187,26 +189,15 @@ namespace Brickficiency {
 
         private void loadWorker_DoWork(object sender, DoWorkEventArgs e) {
 
+            var applicationInitializer = new ApplicationInitializer();
+            applicationInitializer.Run();
+            
             #region Create dir structure
-            if (!Directory.Exists(programdata)) {
-                Directory.CreateDirectory(appdata + "\\" + programname);
-                AddStatus("Preparing Brickficiency for first use..." + Environment.NewLine);
-            }
-            if (!Directory.Exists(programdata + "\\debug")) {
-                Directory.CreateDirectory(programdata + "\\debug");
-            }
 
             if (File.Exists(debugwebreqfilename)) {
                 File.Delete(debugwebreqfilename);
             }
 
-            List<string> crdirs = new List<string>() { "images", "images\\S", "images\\P", "images\\M", "images\\B", "images\\G", "images\\C", "images\\I", "images\\O", "images\\U" };
-
-            foreach (string dir in crdirs) {
-                if (!Directory.Exists(programdata + dir)) {
-                    Directory.CreateDirectory(programdata + dir);
-                }
-            }
             #endregion
 
             #region countries
@@ -2980,31 +2971,16 @@ namespace Brickficiency {
         }
         #endregion
 
+        void IAlgorithmInteraction.OnMatchFound(ICollection<string> storeNames)
+        {
+            addFinalMatch(storeNames.ToList());
+        }
 
-
+        void IAlgorithmInteraction.OnProgress(long solutionsChecked)
+        {
+            longcount = solutionsChecked;
+            Progress();
+        }
     }
         #endregion
-
-    #region Classes
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    #endregion
 }

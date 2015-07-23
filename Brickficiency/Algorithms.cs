@@ -7,53 +7,11 @@ using System.Collections.Generic;
 using System.Text;
 using System.Windows.Forms;
 using System.Threading;
+using Brickficiency.Common;
 
 namespace Brickficiency {
     public partial class MainWindow : Form
     {
-        private void CustomAlgorithm(int k, List<Store> storeList, List<Item> itemList) {
-            AddStatus(Environment.NewLine + "Custom algorithm has not been implemented.  Nothing will be computed." + Environment.NewLine);
-            // You should include the following line in the appopriate place(s) in your algorithm so that if
-            // there is a request to stop searching you will do so.  Examples include at the beginning of a loop
-            // that will perform a lot of calculations.
-            //if (calcWorker.CancellationPending || stopAlgorithmEarly) { return; }
-
-            // Include the following line in your code in an outer loop.
-            // Progress();
-
-            // Include code similar to this whenever you find a set of stores that are valid.
-            // (A set of stores is valid if you can obtain enough of all of the items from those stores.)
-            //List<string> storeNames = new List<string>();
-            //// Put the store names on the list.
-            //addFinalMatch(storeNames);
-        }
-        private void CustomApproximationAlgorithm(int k, List<Store> storeList, List<Item> itemList) {
-            AddStatus(Environment.NewLine + "Custom approximation algorithm has not been implemented.  Nothing will be computed." + Environment.NewLine);
-            // You should include the following line in the appopriate place(s) in your algorithm so that if
-            // there is a request to stop searching you will do so.  Examples include at the beginning of a loop
-            // that will perform a lot of calculations.
-            //if (calcWorker.CancellationPending || stopAlgorithmEarly) { return; }
-
-            // Include the following line in your code in an outer loop.
-            // Progress();
-
-            // Include code similar to this whenever you find a set of stores that are valid.
-            // (A set of stores is valid if you can obtain enough of all of the items from those stores.)
-            //List<string> storeNames = new List<string>();
-            //// Put the store names on the list.
-            //addFinalMatch(storeNames);
-        }
-
-        private void CustomPreProcess(ref List<Store> storeList, ref List<Item> itemList) {
-            // Add any pre-processing of the data here.  Specifically, modify the two lists in 
-            // whatever way you desire to improve the efficiency of your algorithm.
-        }
-        private void CustomApproximationPreProcess(ref List<Store> storeList, ref List<Item> itemList) {
-            // Add any pre-processing of the data here.  Specifically, modify the two lists in 
-            // whatever way you desire to improve the efficiency of your algorithm.
-        }
-
-
         //------------------------------------------------------------------------------------------------------------
         //------------------------------------------------------------------------------------------------------------
         // DO NOT MAKE ANY CHANGES BELOW THIS POINT!
@@ -113,22 +71,11 @@ namespace Brickficiency {
         #region Preprocessing stuff.
         public void StandardPreProcess(ref List<Store> storeList, ref List<Item> itemList) {
             // Sort the wanted list by availstores, ascending.  
-            itemList = SortItemsByStoreAvailability(itemList);
+            itemList = SortUtil.SortItemsByStoreAvailability(itemList);
 
             // Sort the stores in descending order by qty of the first 1-4 items on the sorted wanted list
             // depending on whether or not the number of items on the list is at least that large.
-            storeList = SortStoresByNumberOfFirstSeveralItems(storeList, itemList);
-        }
-
-        private List<Item> SortItemsByStoreAvailability(List<Item> itemList) {
-            return itemList.OrderBy(i => i.availstores).ToList();
-        }
-        // This sorts the stores so they are in decending order by the number of the first item on the wanted list.
-        // If they have the same number, then they are ordered by the number of the second item, etc.
-        private List<Store> SortStoresByNumberOfFirstSeveralItems(List<Store> storeList, List<Item> itemList) {
-            StoreComparer sc = new StoreComparer(itemList);
-            storeList.Sort(sc);
-            return storeList;
+            storeList = SortUtil.SortStoresByNumberOfFirstSeveralItems(storeList, itemList);
         }
         #endregion
 
@@ -213,25 +160,6 @@ namespace Brickficiency {
         #endregion
 
         #region Old Algorithm
-        private void RunOldAlgorithmOn(int numStores, List<Store> storeList, List<Item> itemList) {
-            switch (numStores) {
-                case 1:
-                    OneStoreCalc(storeList, itemList);
-                    break;
-                case 2:
-                    TwoStoreCalc(storeList, itemList);
-                    break;
-                case 3:
-                    ThreeStoreCalc(storeList, itemList);
-                    break;
-                case 4:
-                    FourStoreCalc(storeList, itemList);
-                    break;
-                case 5:
-                    FiveStoreCalc(storeList, itemList);
-                    break;
-            }
-        }
         private void OneStoreCalc(List<Store> storeList, List<Item> itemList) {
             for (int store1 = 0; store1 < storeList.Count; store1++) {
                 foreach (Item item in itemList) {
@@ -244,132 +172,6 @@ namespace Brickficiency {
                 addFinalMatch(storeNames);
                 Progress();
             }
-        }
-        private void TwoStoreCalc(List<Store> storeList, List<Item> itemList) {
-            // This is like a for loop that makes the variable store1 go from 0 (inclusive) to storeList.Count (exclusive).
-            // The only difference is that this one will run the loops in parallel.  All of the hard work to accomplish 
-            // running it in parallel is done behind the scenes.  This only works because what each iteration of the loop
-            // is doing is independent of the others.  If each loop depended on the previous loop this wouldn't work properly.
-            Parallel.For(0, storeList.Count, store1 => {
-                for (int store2 = store1 + 1; store2 < storeList.Count; store2++) {
-                    if (calcWorker.CancellationPending) { return; }
-                    Interlocked.Increment(ref longcount);
-                    bool fail = false;
-                    foreach (Item item in itemList) {
-                        if (storeList[store1].getQty(item.extid) +
-                            storeList[store2].getQty(item.extid) < item.qty) {
-                            fail = true;
-                            break;
-                        }
-                    }
-                    if (!fail) {
-                        List<string> storeNames = new List<string>();
-                        storeNames.Add(storeList[store1].getName());
-                        storeNames.Add(storeList[store2].getName());
-                        addFinalMatch(storeNames);
-                    }
-                }
-                Progress();
-            });
-        }
-        private void ThreeStoreCalc(List<Store> storeList, List<Item> itemList) {
-            Parallel.For(0, storeList.Count, store1 => {
-                for (int store2 = store1 + 1; store2 < storeList.Count; store2++) {
-                    if (calcWorker.CancellationPending) { return; }
-                    for (int store3 = store2 + 1; store3 < storeList.Count; store3++) {
-                        Interlocked.Increment(ref longcount);
-                        if (calcWorker.CancellationPending) { return; }
-                        bool fail = false;
-                        foreach (Item item in itemList) {
-                            if (storeList[store1].getQty(item.extid) +
-                                storeList[store2].getQty(item.extid) +
-                                storeList[store3].getQty(item.extid) < item.qty) {
-                                fail = true;
-                                break;
-                            }
-                        }
-                        if (!fail) {
-                            List<string> storeNames = new List<string>();
-                            storeNames.Add(storeList[store1].getName());
-                            storeNames.Add(storeList[store2].getName());
-                            storeNames.Add(storeList[store3].getName());
-                            addFinalMatch(storeNames);
-                        }
-                    }
-                }
-                Progress();
-            });
-        }
-        private void FourStoreCalc(List<Store> storeList, List<Item> itemList) {
-            Parallel.For(0, storeList.Count, store1 => {
-                for (int store2 = store1 + 1; store2 < storeList.Count; store2++) {
-                    if (calcWorker.CancellationPending) { return; }
-                    for (int store3 = store2 + 1; store3 < storeList.Count; store3++) {
-                        if (calcWorker.CancellationPending) { return; }
-                        for (int store4 = store3 + 1; store4 < storeList.Count; store4++) {
-                            if (calcWorker.CancellationPending) { return; }
-                            Interlocked.Increment(ref longcount);
-                            bool fail = false;
-                            foreach (Item item in itemList) {
-                                if (storeList[store1].getQty(item.extid) +
-                                    storeList[store2].getQty(item.extid) +
-                                    storeList[store3].getQty(item.extid) +
-                                    storeList[store4].getQty(item.extid) < item.qty) {
-                                    fail = true;
-                                    break;
-                                }
-                            }
-                            if (!fail) {
-                                List<string> storeNames = new List<string>();
-                                storeNames.Add(storeList[store1].getName());
-                                storeNames.Add(storeList[store2].getName());
-                                storeNames.Add(storeList[store3].getName());
-                                storeNames.Add(storeList[store4].getName());
-                                addFinalMatch(storeNames);
-                            }
-                        }
-                    }
-                }
-                Progress();
-            });
-        }
-        private void FiveStoreCalc(List<Store> storeList, List<Item> itemList) {
-            Parallel.For(0, storeList.Count, store1 => {
-                for (int store2 = store1 + 1; store2 < storeList.Count; store2++) {
-                    if (calcWorker.CancellationPending) { return; }
-                    for (int store3 = store2 + 1; store3 < storeList.Count; store3++) {
-                        if (calcWorker.CancellationPending) { return; }
-                        for (int store4 = store3 + 1; store4 < storeList.Count; store4++) {
-                            if (calcWorker.CancellationPending) { return; }
-                            for (int store5 = store4 + 1; store5 < storeList.Count; store5++) {
-                                if (calcWorker.CancellationPending) { return; }
-                                Interlocked.Increment(ref longcount);
-                                bool fail = false;
-                                foreach (Item item in itemList) {
-                                    if (storeList[store1].getQty(item.extid) +
-                                        storeList[store2].getQty(item.extid) +
-                                        storeList[store3].getQty(item.extid) +
-                                        storeList[store4].getQty(item.extid) +
-                                        storeList[store5].getQty(item.extid) < item.qty) {
-                                        fail = true;
-                                        break;
-                                    }
-                                }
-                                if (!fail) {
-                                    List<string> storeNames = new List<string>();
-                                    storeNames.Add(storeList[store1].getName());
-                                    storeNames.Add(storeList[store2].getName());
-                                    storeNames.Add(storeList[store3].getName());
-                                    storeNames.Add(storeList[store4].getName());
-                                    storeNames.Add(storeList[store5].getName());
-                                    addFinalMatch(storeNames);
-                                }
-                            }
-                        }
-                    }
-                }
-                Progress();
-            });
         }
         #endregion
 
